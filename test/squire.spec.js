@@ -1,26 +1,47 @@
-/*global expect, describe, afterEach, beforeEach, it */
-expect = expect.clone()
+/*global Squire, sinon, unexpected, unexpectedSinon, describe, afterEach, beforeEach, it */
+(function () {
+    'use strict';
+
+var expect = unexpected.clone()
+    .installPlugin(unexpectedSinon)
     .addType({
         name: 'SquireRTE',
         base: 'object',
         identify: function (value) {
             return value instanceof Squire;
         },
-        inspect: function (value) {
-            return 'Squire RTE: ' + value.getHTML();
+        inspect: function (value, depth, output) {
+            output.text('Squire RTE: ' + value.getHTML());
         }
     })
-    .addAssertion('[not] to contain HTML', function (expect, editor, expectedValue) {
-        this.errorMode = 'bubble';
+    .addAssertion('SquireRTE', '[not] to contain HTML', function (expect, editor, expectedValue) {
         var actualHTML = editor.getHTML().replace(/<br>/g, '');
         // BR tags are inconsistent across browsers. Removing them allows cross-browser testing.
         expect(actualHTML, '[not] to be', expectedValue);
+    })
+    .addAssertion('SquireRTE', '[not] to fire', function (expect, editor, event, _, activity) {
+        this.errorMode = 'nested';
+        if (typeof _ === 'function') {
+            activity = _;
+        }
+        return expect.promise(function (run) {
+            setTimeout(run(function () {
+                var handlerSpy = sinon.spy();
+                editor.addEventListener(event, handlerSpy);
+                activity();
+                setTimeout(run(function () {
+                    expect(handlerSpy, 'was [not] called');
+                }), 2);
+            }, 2));
+        });
     });
 
 describe('Squire RTE', function () {
-    var doc, editor;
+    var doc, editor, iframe;
     beforeEach(function () {
-        var iframe = document.getElementById('testFrame');
+        iframe = document.createElement('IFRAME');
+        iframe.style.visibility = 'hidden';
+        document.body.appendChild(iframe);
         doc = iframe.contentDocument;
         editor = new Squire(doc);
     });
@@ -31,6 +52,24 @@ describe('Squire RTE', function () {
         range.setEnd(doc.body.childNodes.item(0), doc.body.childNodes.item(0).childNodes.length);
         editor.setSelection(range);
     }
+
+    describe('addEventListener', function () {
+        describe('input', function () {
+            it('fires when editor content is changed', function () {
+                var startHTML = '<div>aaa</div>';
+                editor.setHTML(startHTML);
+                expect(editor, 'to contain HTML', startHTML);
+                return expect(editor, 'to fire', 'input', 'when calling', function () {
+                    // doc.body.childNodes.item(0).appendChild( doc.createTextNode('bbb'));
+                    var range = doc.createRange();
+                    range.setStart(doc.body.childNodes.item(0), 0);
+                    range.setEnd(doc.body.childNodes.item(0), doc.body.childNodes.item(0).childNodes.length);
+                    editor.setSelection(range);
+                    editor.bold();
+                });
+            });
+        });
+    });
 
     describe('removeAllFormatting', function () {
         // Trivial cases
@@ -115,7 +154,9 @@ describe('Squire RTE', function () {
 
     afterEach(function () {
         editor = null;
-        var iframe = document.getElementById('testFrame');
-        iframe.src = 'blank.html';
+        document.body.removeChild(iframe);
+        iframe = null;
     });
 });
+
+})();

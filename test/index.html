@@ -3,16 +3,18 @@
   <meta charset="utf-8">
   <title>Squire rich-text editor tests</title>
   <link rel="stylesheet" href="../node_modules/mocha/mocha.css" />
+  <script src="../node_modules/mocha/mocha.js"></script>
+  <script src="../node_modules/sinon/pkg/sinon.js"></script>
+  <script src="../node_modules/unexpected/unexpected.js"></script>
+  <script src="../node_modules/unexpected-sinon/lib/unexpected-sinon.js"></script>
+  <script src="../build/squire-raw.js"></script>
 </head>
 <body>
-  <script src="../node_modules/mocha/mocha.js"></script>
-  <script src="../node_modules/unexpected/unexpected.js"></script>
-  <script src="../build/squire-raw.js"></script>
-  <iframe id="testFrame" style="visibility: hidden;"></iframe>
   <div id="mocha"></div>
   <script>
     mocha.setup('bdd');
-    var expect = weknowhow.expect;
+    var unexpected = weknowhow.expect;
+    var unexpectedSinon = weknowhow.unexpectedSinon;
   </script>
   <script src="squire.spec.js"></script>
   <script>
