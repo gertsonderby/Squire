@@ -1,9 +1,10 @@
-/*global unexpected, describe, afterEach, beforeEach, it, Squire */
+/*global Squire, sinon, unexpected, unexpectedSinon, describe, afterEach, beforeEach, it */
 (function () {
 'use strict';
 
 var expect = unexpected.clone()
     .installPlugin(unexpected.dom)
+    .installPlugin(unexpectedSinon)
     .addType({
         name: 'SquireRTE',
         base: 'object',
@@ -31,6 +32,22 @@ var expect = unexpected.clone()
                 name: 'body',
                 children: expectedValue
             });
+        })
+    .addAssertion('SquireRTE', '[not] to fire', function (expect, editor, event, _, activity) {
+        this.errorMode = 'nested';
+        if (typeof _ === 'function') {
+            activity = _;
+        }
+        return expect.promise(function (run) {
+            setTimeout(run(function () {
+                var handlerSpy = sinon.spy();
+                editor.addEventListener(event, handlerSpy);
+                activity();
+                setTimeout(run(function () {
+                    expect(handlerSpy, 'was [not] called');
+                }), 2);
+            }, 2));
+        });
     });
 
 window.expect = expect;
@@ -55,6 +72,24 @@ describe('Squire RTE', function () {
         range.setEnd(doc.body.childNodes[doc.body.childNodes.length - 1], doc.body.childNodes[doc.body.childNodes.length - 1].childNodes.length);
         editor.setSelection(range);
     }
+
+    describe('addEventListener', function () {
+        describe('input', function () {
+            it('fires when editor content is changed', function () {
+                var startHTML = '<div>aaa</div>';
+                editor.setHTML(startHTML);
+                expect(editor, 'to contain HTML', startHTML);
+                return expect(editor, 'to fire', 'input', 'when calling', function () {
+                    // doc.body.childNodes.item(0).appendChild( doc.createTextNode('bbb'));
+                    var range = doc.createRange();
+                    range.setStart(doc.body.childNodes.item(0), 0);
+                    range.setEnd(doc.body.childNodes.item(0), doc.body.childNodes.item(0).childNodes.length);
+                    editor.setSelection(range);
+                    editor.bold();
+                });
+            });
+        });
+    });
 
     describe('hasFormat', function () {
         var startHTML;
@@ -387,4 +422,5 @@ describe('Squire RTE', function () {
         document.body.removeChild( iframe );
     });
 });
+
 })();
