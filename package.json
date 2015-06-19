@@ -1,5 +1,8 @@
 {
-  "name": "squire-rte",
+  "name": "one.com-squire-rte",
+  "publishConfig": {
+    "registry": "http://npm.one.com/"
+  },
   "version": "1.3.0",
   "description": "Squire is an HTML5 rich text editor, which provides powerful cross-browser normalisation, whilst being supremely lightweight and flexible.",
   "main": "build/squire.js",
