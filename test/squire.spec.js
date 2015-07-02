@@ -38,12 +38,15 @@ var expect = unexpected.clone()
 
 describe('Squire RTE', function () {
     var doc, editor, iframe;
-    beforeEach(function () {
+    beforeEach(function (done) {
         iframe = document.createElement('IFRAME');
         iframe.style.visibility = 'hidden';
+        iframe.addEventListener('load', function () {
+            doc = iframe.contentDocument;
+            editor = new Squire(doc);
+            done();
+        });
         document.body.appendChild(iframe);
-        doc = iframe.contentDocument;
-        editor = new Squire(doc);
     });
 
     function selectAll(editor) {
