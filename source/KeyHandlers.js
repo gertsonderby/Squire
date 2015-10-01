@@ -176,6 +176,16 @@ var keyHandlers = {
             return;
         }
 
+        if ( /^PRE|CODE|SAMP$/.test( block.nodeName ) ) {
+            // Inside a preformatted block, insert a linebreak, and done.
+            insertNodeInRange( range, self._doc.createTextNode( '\n' ) );
+            range.collapse( false );
+            block.normalize();
+            self.setSelection( range );
+            self._updatePath( range, true );
+            return;
+        }
+
         // If in a list, we'll split the LI instead.
         if ( parent = getNearest( block, 'LI' ) ) {
             block = parent;
@@ -452,6 +462,15 @@ if ( !isMac ) {
         self.moveCursorToEnd();
     };
 }
+
+keyHandlers[ ctrlKey + 'shift-m' ] = function ( self, event, range ) {
+    event.preventDefault();
+    if ( self.hasFormat( 'pre', null, range ) ) {
+        self.removePreformatted();
+    } else {
+        self.makePreformatted();
+    }
+};
 
 keyHandlers[ ctrlKey + 'b' ] = mapKeyToFormat( 'B' );
 keyHandlers[ ctrlKey + 'i' ] = mapKeyToFormat( 'I' );
