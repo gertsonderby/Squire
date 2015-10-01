@@ -1,6 +1,7 @@
 /*global unexpected, describe, afterEach, beforeEach, it, Squire */
 (function () {
 'use strict';
+
 var expect = unexpected.clone()
     .installPlugin(unexpected.dom)
     .addType({
@@ -13,11 +14,19 @@ var expect = unexpected.clone()
             return output.text('Squire RTE: ').code(value.getHTML(), 'html');
         }
     })
-    .addAssertion('SquireRTE', '[not] to contain HTML', function (expect, editor, expectedValue) {
-        expect.errorMode ='nested';
-        // BR tags are inconsistent across browsers. Removing them allows cross-browser testing.
-        expect(editor.getHTML().replace(/<br>/g, ''), '[not] to contain', expectedValue);
+    .addAssertion('DOMDocumentFragment', 'with br tags stripped', function (expect, subject) {
+        for (var i = 0 ; i < subject.childNodes.length ; i += 1) {
+            Array.prototype.forEach.call(subject.childNodes[i].querySelectorAll('br'), function (brElement) {
+                brElement.parentNode.removeChild(brElement);
+            });
+        }
+        return expect.shift(subject, 0);
+    })
+    .addAssertion('SquireRTE', '[not] to contain HTML [with br tags stripped]', function (expect, editor, expectedValue) {
+        return expect(editor.getHTML(), 'when parsed as HTML fragment', 'with br tags stripped', '[not] to satisfy', expectedValue);
     });
+
+window.expect = expect;
 
 describe('Squire RTE', function () {
     var doc, editor;
