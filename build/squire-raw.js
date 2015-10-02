@@ -698,7 +698,7 @@ var insertNodeInRange = function ( range, node ) {
 
     childCount = children.length;
 
-    if ( startOffset === childCount) {
+    if ( startOffset === childCount ) {
         startContainer.appendChild( node );
     } else {
         startContainer.insertBefore( node, children[ startOffset ] );
@@ -2705,7 +2705,7 @@ proto._keyUpDetectChange = function ( event ) {
     // 3. The key pressed is not in range 33<=x<=45 (navigation keys)
     if ( !event.ctrlKey && !event.metaKey && !event.altKey &&
             ( code < 16 || code > 20 ) &&
-            ( code < 33 || code > 45 ) )  {
+            ( code < 33 || code > 45 ) ) {
         this._docWasChanged();
     }
 };
@@ -2734,7 +2734,7 @@ proto._recordUndoState = function ( range ) {
             undoStack = this._undoStack;
 
         // Truncate stack if longer (i.e. if has been previously undone)
-        if ( undoIndex < this._undoStackLength) {
+        if ( undoIndex < this._undoStackLength ) {
             undoStack.length = this._undoStackLength = undoIndex;
         }
 
@@ -2801,6 +2801,20 @@ proto.hasFormat = function ( tag, attributes, range ) {
     if ( !attributes ) { attributes = {}; }
     if ( !range && !( range = this.getSelection() ) ) {
         return false;
+    }
+
+    // Sanitize range to prevent weird IE artifacts
+    if ( !range.collapsed &&
+            range.startContainer.nodeType === TEXT_NODE &&
+            range.startOffset === range.startContainer.length &&
+            range.startContainer.nextSibling ) {
+        range.setStartBefore( range.startContainer.nextSibling );
+    }
+    if ( !range.collapsed &&
+            range.endContainer.nodeType === TEXT_NODE &&
+            range.endOffset === 0 &&
+            range.endContainer.nextSibling ) {
+        range.setEndAfter( range.endContainer.previousSibling );
     }
 
     // If the common ancestor is inside the tag we require, we definitely
@@ -2897,9 +2911,9 @@ proto._addFormat = function ( tag, attributes, range ) {
             SHOW_TEXT|SHOW_ELEMENT,
             function ( node ) {
                 return ( node.nodeType === TEXT_NODE ||
-                                                    node.nodeName === 'BR'||
-                                                    node.nodeName === 'IMG' ) &&
-                    isNodeContainedInRange( range, node, true );
+                        node.nodeName === 'BR' ||
+                        node.nodeName === 'IMG'
+                    ) && isNodeContainedInRange( range, node, true );
             },
             false
         );
