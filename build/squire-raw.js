@@ -3405,7 +3405,7 @@ var decreaseListLevel = function ( frag ) {
     return frag;
 };
 
-var makePreformatted = function ( frag ) {
+var getTextFromHTMLFragment = function ( self, frag ) {
     var walker = getBlockWalker( frag ),
         lines = [],
         node;
@@ -3413,17 +3413,20 @@ var makePreformatted = function ( frag ) {
         // Strip down to text only
         lines.push( node.textContent );
     }
-    node = this._doc.createTextNode( lines.join( '\n' ) || '\n' );
+    return self._doc.createTextNode( lines.join( '\n' ) || '\n' );
+};
+
+var makePreformatted = function ( frag ) {
     return this.createElement( 'PRE',
         this._config.tagAttributes.pre, [
-            node
+            getTextFromHTMLFragment( this, frag )
         ] );
 };
 
 var removePreformatted = function ( frag ) {
     var range = this._doc.createRange();
-    var startRangeMarker = frag.getElementById( startSelectionId );
-    var endRangeMarker = frag.getElementById( endSelectionId );
+    var startRangeMarker = frag.querySelector( '#' + startSelectionId );
+    var endRangeMarker = frag.querySelector( '#' + endSelectionId );
     if (!startRangeMarker || !endRangeMarker) { return frag; }
 
     range.setStartBefore( startRangeMarker );
@@ -3689,12 +3692,13 @@ proto.insertHTML = function ( html, isPaste ) {
         frag = this._doc.createDocumentFragment(),
         div = this.createElement( 'DIV' );
 
-    if ( this.hasFormat( 'pre' ) || this.hasFormat( 'code' ) ) {
+    // Parse HTML into DOM tree
+    div.innerHTML = html;
+    // If range is entirely inside PRE tag
+    if ( getNearest( range.commonAncestorContainer, 'PRE' ) ) {
         // Insert unparsed in text node
-        frag.appendChild( this._doc.createTextNode( html ) );
+        frag.appendChild( getTextFromHTMLFragment( this, div ) );
     } else {
-        // Parse HTML into DOM tree
-        div.innerHTML = html;
         frag.appendChild( empty( div ) );
     }
 
@@ -3744,7 +3748,7 @@ proto.insertHTML = function ( html, isPaste ) {
 };
 
 proto.insertPlainText = function ( plainText, isPaste ) {
-    if ( this.hasFormat( 'pre' ) || this.hasFormat( 'code' ) ) {
+    if ( getNearest( range.commonAncestorContainer, 'PRE' ) ) {
         return this.insertHTML( plainText, isPaste );
     } else {
         var lines = plainText.split( '\n' ),
