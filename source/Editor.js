@@ -1619,21 +1619,17 @@ proto.insertHTML = function ( html, isPaste ) {
 };
 
 proto.insertPlainText = function ( plainText, isPaste ) {
-    if ( getNearest( range.commonAncestorContainer, 'PRE' ) ) {
-        return this.insertHTML( plainText, isPaste );
-    } else {
-        var lines = plainText.split( '\n' ),
-            i, l;
-        for ( i = 1, l = lines.length - 1; i < l; i += 1 ) {
-            lines[i] = '<DIV>' +
-                lines[i].split( '&' ).join( '&amp;' )
-                        .split( '<' ).join( '&lt;'  )
-                        .split( '>' ).join( '&gt;'  )
-                        .replace( / (?= )/g, '&nbsp;' ) +
-            '</DIV>';
-        }
-        return this.insertHTML( lines.join( '' ), isPaste );
+    var lines = plainText.split( '\n' ),
+        i, l;
+    for ( i = 1, l = lines.length - 1; i < l; i += 1 ) {
+        lines[i] = '<DIV>' +
+            lines[i].split( '&' ).join( '&amp;' )
+                    .split( '<' ).join( '&lt;'  )
+                    .split( '>' ).join( '&gt;'  )
+                    .replace( / (?= )/g, '&nbsp;' ) +
+        '</DIV>';
     }
+    return this.insertHTML( lines.join( '' ), isPaste );
 };
 
 // --- Formatting ---
