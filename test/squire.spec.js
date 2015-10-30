@@ -52,6 +52,10 @@ var expect = unexpected.clone()
 
 window.expect = expect;
 
+function capitalize(s) {
+    return s && s[0].toUpperCase() + s.slice(1);
+}
+
 describe('Squire RTE', function () {
     var doc, editor;
     beforeEach(function (done) {
@@ -170,6 +174,28 @@ describe('Squire RTE', function () {
             range.setEndAfter(doc.querySelector('b'));
             editor.setSelection(range);
             expect(editor.hasFormat('b'), 'to be true');
+        });
+    });
+
+    ['ordered', 'unordered'].forEach(function (listType) {
+        var listTag = listType[0] + 'l';
+        var makeFuncName = 'make' + capitalize(listType) + 'List';
+        describe(makeFuncName, function () {
+            it('turns elements into a list', function () {
+                var startHTML = '<div>one</div><div>two</div>';
+                editor.setHTML(startHTML);
+                selectAll(editor);
+                editor[makeFuncName]();
+                expect(editor, 'to contain HTML', [{
+                        name: listTag,
+                        children: [
+                            { name: 'li', textContent: 'one' },
+                            { name: 'li', textContent: 'two' }
+                        ]
+                    },
+                    { name: 'div', textContent: '' }
+                ]);
+            });
         });
     });
 
