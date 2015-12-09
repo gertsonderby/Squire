@@ -1404,16 +1404,6 @@ var keyHandlers = {
         range = self._createRange( nodeAfterSplit, 0 );
         self.setSelection( range );
         self._updatePath( range, true );
-
-        // Scroll into view
-        if ( nodeAfterSplit.nodeType === TEXT_NODE ) {
-            nodeAfterSplit = nodeAfterSplit.parentNode;
-        }
-        // 16 ~ one standard line height in px.
-        if ( nodeAfterSplit.getBoundingClientRect().top + 16 >
-                self._doc.documentElement.clientHeight ) {
-            nodeAfterSplit.scrollIntoView( false );
-        }
     },
     backspace: function ( self, event, range ) {
         self._removeZWS();
@@ -1663,7 +1653,7 @@ var spanToSemantic = {
         replace: function ( doc, colour ) {
             return createElement( doc, 'SPAN', {
                 'class': 'highlight',
-                style: 'background-color: ' + colour
+                style: 'background-color:' + colour
             });
         }
     },
@@ -2456,6 +2446,33 @@ proto._createRange =
     return domRange;
 };
 
+proto.scrollRangeIntoView = function ( range ) {
+    // Get the bounding rect
+    var rect = range.getBoundingClientRect();
+    var node, parent;
+    if ( !rect.top ) {
+        node = this._doc.createElement( 'SPAN' );
+        range = range.cloneRange();
+        insertNodeInRange( range, node );
+        rect = node.getBoundingClientRect();
+        parent = node.parentNode;
+        parent.removeChild( node );
+        parent.normalize();
+    }
+    // Then check and scroll
+    var win = this._win;
+    var height = win.innerHeight;
+    var top = rect.top;
+    if ( top > height ) {
+        win.scrollBy( 0, top - height + 20 );
+    }
+    // And fire event for integrations to use
+    this.fireEvent( 'scrollPointIntoView', {
+        x: rect.left,
+        y: top
+    });
+};
+
 proto._moveCursorTo = function ( toStart ) {
     var body = this._body,
         range = this._createRange( body, toStart ? 0 : body.childNodes.length );
@@ -2483,6 +2500,7 @@ proto.setSelection = function ( range ) {
         if ( sel ) {
             sel.removeAllRanges();
             sel.addRange( range );
+            this.scrollRangeIntoView( range );
         }
     }
     return this;
@@ -2580,6 +2598,7 @@ var removeZWS = function ( root ) {
                     parent = node.parentNode;
                     parent.removeChild( node );
                     node = parent;
+                    walker.currentNode = parent;
                 } while ( isInline( node ) && !getLength( node ) );
                 break;
             } else {
@@ -2888,10 +2907,13 @@ proto.hasFormat = function ( tag, attributes, range ) {
 // holding the cursor. If there's a selection, returns an empty object.
 proto.getFontInfo = function ( range ) {
     var fontInfo = {
-            family: undefined,
-            size: undefined
-        },
-        element, style;
+        color: undefined,
+        backgroundColor: undefined,
+        family: undefined,
+        size: undefined
+    };
+    var seenAttributes = 0;
+    var element, style;
 
     if ( !range && !( range = this.getSelection() ) ) {
         return fontInfo;
@@ -2902,13 +2924,22 @@ proto.getFontInfo = function ( range ) {
         if ( element.nodeType === TEXT_NODE ) {
             element = element.parentNode;
         }
-        while ( !( fontInfo.family && fontInfo.size ) &&
-                element && ( style = element.style ) ) {
+        while ( seenAttributes < 4 && element && ( style = element.style ) ) {
+            if ( !fontInfo.color ) {
+                fontInfo.color = style.color;
+                seenAttributes += 1;
+            }
+            if ( !fontInfo.backgroundColor ) {
+                fontInfo.backgroundColor = style.backgroundColor;
+                seenAttributes += 1;
+            }
             if ( !fontInfo.family ) {
                 fontInfo.family = style.fontFamily;
+                seenAttributes += 1;
             }
             if ( !fontInfo.size ) {
                 fontInfo.size = style.fontSize;
+                seenAttributes += 1;
             }
             element = element.parentNode;
         }
@@ -3935,7 +3966,7 @@ proto.setTextColour = function ( colour ) {
         tag: 'SPAN',
         attributes: {
             'class': 'colour',
-            style: 'color: ' + colour
+            style: 'color:' + colour
         }
     }, {
         tag: 'SPAN',
@@ -3949,7 +3980,7 @@ proto.setHighlightColour = function ( colour ) {
         tag: 'SPAN',
         attributes: {
             'class': 'highlight',
-            style: 'background-color: ' + colour
+            style: 'background-color:' + colour
         }
     }, {
         tag: 'SPAN',
