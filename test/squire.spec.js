@@ -78,6 +78,12 @@ describe('Squire RTE', function () {
     }
 
     describe('addEventListener', function () {
+        describe('focus', function () {});
+        describe('blur', function () {});
+        describe('keydown', function () {});
+        describe('keyup', function () {});
+        describe('keypress', function () {});
+
         describe('input', function () {
             it('fires when editor content is changed', function () {
                 var startHTML = '<div>aaa</div>';
@@ -93,7 +99,31 @@ describe('Squire RTE', function () {
                 });
             });
         });
+
+        describe('pathChange', function () {});
+        describe('select', function () {});
+        describe('undoStateChange', function () {});
+        describe('willPaste', function () {});
     });
+
+    describe('removeEventListener', function () {});
+    describe('setKeyHandler', function () {});
+    describe('focus', function () {});
+    describe('blur', function () {});
+    describe('getDocument', function () {});
+    describe('getHTML', function () {});
+    describe('setHTML', function () {});
+    describe('getSelectedText', function () {});
+    describe('insertImage', function () {});
+    describe('insertHTML', function () {});
+    describe('getPath', function () {});
+    describe('getFontInfo', function () {});
+    describe('getSelection', function () {});
+    describe('setSelection', function () {});
+    describe('moveCursorToStart', function () {});
+    describe('moveCursorToEnd', function () {});
+    describe('undo', function () {});
+    describe('redo', function () {});
 
     describe('hasFormat', function () {
         var startHTML;
@@ -177,7 +207,26 @@ describe('Squire RTE', function () {
         });
     });
 
-    ['ordered', 'unordered'].forEach(function (listType) {
+    describe('bold', function () {});
+    describe('italic', function () {});
+    describe('underline', function () {});
+    describe('removeBold', function () {});
+    describe('removeItalic', function () {});
+    describe('removeUnderline', function () {});
+    describe('makeLink', function () {});
+    describe('removeLink', function () {});
+    describe('setFontFace', function () {});
+    describe('setFontSize', function () {});
+    describe('setTextColour', function () {});
+    describe('setHighlightColour', function () {});
+    describe('setTextAlignment', function () {});
+    describe('setTextDirection', function () {});
+    describe('forEachBlock', function () {});
+    describe('modifyBlocks', function () {});
+    describe('increaseQuoteLevel', function () {});
+    describe('decreaseQuoteLevel', function () {});
+
+    ['unordered', 'ordered'].forEach(function (listType) {
         var listTag = listType[0] + 'l';
         var makeFuncName = 'make' + capitalize(listType) + 'List';
         describe(makeFuncName, function () {
@@ -199,110 +248,9 @@ describe('Squire RTE', function () {
         });
     });
 
-    describe('removeAllFormatting', function () {
-        // Trivial cases
-        it('removes inline styles', function () {
-            var startHTML = '<div><i>one</i> <b>two</b> <u>three</u> <sub>four</sub> <sup>five</sup></div>';
-            editor.setHTML(startHTML);
-            selectAll(editor);
-            editor.removeAllFormatting();
-            expect(editor, 'to contain HTML', {
-                name: 'div',
-                children: [
-                    'one two three four five'
-                ]});
-        });
-        it('removes block styles', function () {
-            var startHTML = '<div><blockquote>one</blockquote><ul><li>two</li></ul>' +
-                '<ol><li>three</li></ol><table><tbody><tr><th>four</th><td>five</td></tr></tbody></table></div>';
-            editor.setHTML(startHTML);
-            selectAll(editor);
-            editor.removeAllFormatting();
-            expect(editor, 'to contain HTML', [
-                { name: 'div', textContent: 'one' },
-                { name: 'div', textContent: 'two' },
-                { name: 'div', textContent: 'three' },
-                { name: 'div', textContent: 'four' },
-                { name: 'div', textContent: 'five' }
-            ]);
-        });
-
-        // Potential bugs
-        it('removes styles that begin inside the range', function () {
-            var startHTML = '<div>one <i>two three four five</i></div>';
-            editor.setHTML(startHTML);
-            var range = doc.createRange();
-            range.setStart(doc.body.childNodes[0], 0);
-            range.setEnd(doc.getElementsByTagName('i')[0].childNodes[0], 4);
-            editor.removeAllFormatting(range);
-            expect(editor, 'to contain HTML', {
-                name: 'div',
-                children: [
-                    'one two ',
-                    { name: 'i', textContent: 'three four five' }
-                ]});
-        });
-
-        it('removes styles that end inside the range', function () {
-            var startHTML = '<div><i>one two three four</i> five</div>';
-            editor.setHTML(startHTML);
-            var range = doc.createRange();
-            range.setStart(doc.getElementsByTagName('i')[0].childNodes[0], 13);
-            range.setEnd(doc.body.childNodes[0], doc.body.childNodes[0].childNodes.length);
-            editor.removeAllFormatting(range);
-            expect(editor, 'to contain HTML', {
-                name: 'div',
-                children: [
-                    { name: 'i' , textContent: 'one two three' },
-                    ' four five'
-                ]});
-        });
-
-        it('removes styles enclosed by the range', function () {
-            var startHTML = '<div>one <i>two three four</i> five</div>';
-            editor.setHTML(startHTML);
-            var range = doc.createRange();
-            range.setStart(doc.body.childNodes[0], 0);
-            range.setEnd(doc.body.childNodes[0], doc.body.childNodes[0].childNodes.length);
-            editor.removeAllFormatting(range);
-            expect(editor, 'to contain HTML', {
-                name: 'div',
-                children: [
-                    'one two three four five'
-                ]});
-        });
-
-        it('removes styles enclosing the range', function () {
-            var startHTML = '<div><i>one two three four five</i></div>';
-            editor.setHTML(startHTML);
-            var range = doc.createRange();
-            range.setStart(doc.getElementsByTagName('i')[0].childNodes[0], 4);
-            range.setEnd(doc.getElementsByTagName('i')[0].childNodes[0], 18);
-            editor.removeAllFormatting(range);
-            expect(editor, 'to contain HTML', {
-                name: 'div',
-                children: [
-                    { name: 'i', textContent: 'one ' },
-                    'two three four',
-                    { name: 'i', textContent: ' five' }
-                ]});
-        });
-
-        it('removes nested styles and closes tags correctly', function () {
-            var startHTML = '<table><tbody><tr><td>one</td></tr><tr><td>two</td><td>three</td></tr><tr><td>four</td><td>five</td></tr></tbody></table>';
-            editor.setHTML(startHTML);
-            var range = doc.createRange();
-            range.setStart(doc.getElementsByTagName('td')[1], 0);
-            range.setEnd(doc.getElementsByTagName('td')[2], doc.getElementsByTagName('td')[2].childNodes.length);
-            editor.removeAllFormatting(range);
-            expect(editor, 'to contain HTML', [
-                    '<table><tbody><tr><td>one</td></tr></tbody></table>',
-                    '<div>two</div>',
-                    '<div>three</div>',
-                    '<table><tbody><tr><td>four</td><td>five</td></tr></tbody></table>'
-                ]);
-        });
-    });
+    describe('removeList', function () {});
+    describe('increaseListLevel', function () {});
+    describe('decreaseListLevel', function () {});
 
     describe('makePreformatted', function () {
         it('adds a PRE element around text on same line', function () {
@@ -439,6 +387,111 @@ describe('Squire RTE', function () {
                     { name: 'div', textContent: '' }
                 ]);
             });
+        });
+    });
+
+    describe('removeAllFormatting', function () {
+        // Trivial cases
+        it('removes inline styles', function () {
+            var startHTML = '<div><i>one</i> <b>two</b> <u>three</u> <sub>four</sub> <sup>five</sup></div>';
+            editor.setHTML(startHTML);
+            selectAll(editor);
+            editor.removeAllFormatting();
+            expect(editor, 'to contain HTML', {
+                name: 'div',
+                children: [
+                    'one two three four five'
+                ]});
+        });
+        it('removes block styles', function () {
+            var startHTML = '<div><blockquote>one</blockquote><ul><li>two</li></ul>' +
+                '<ol><li>three</li></ol><table><tbody><tr><th>four</th><td>five</td></tr></tbody></table></div>';
+            editor.setHTML(startHTML);
+            selectAll(editor);
+            editor.removeAllFormatting();
+            expect(editor, 'to contain HTML', [
+                { name: 'div', textContent: 'one' },
+                { name: 'div', textContent: 'two' },
+                { name: 'div', textContent: 'three' },
+                { name: 'div', textContent: 'four' },
+                { name: 'div', textContent: 'five' }
+            ]);
+        });
+
+        // Potential bugs
+        it('removes styles that begin inside the range', function () {
+            var startHTML = '<div>one <i>two three four five</i></div>';
+            editor.setHTML(startHTML);
+            var range = doc.createRange();
+            range.setStart(doc.body.childNodes[0], 0);
+            range.setEnd(doc.getElementsByTagName('i')[0].childNodes[0], 4);
+            editor.removeAllFormatting(range);
+            expect(editor, 'to contain HTML', {
+                name: 'div',
+                children: [
+                    'one two ',
+                    { name: 'i', textContent: 'three four five' }
+                ]});
+        });
+
+        it('removes styles that end inside the range', function () {
+            var startHTML = '<div><i>one two three four</i> five</div>';
+            editor.setHTML(startHTML);
+            var range = doc.createRange();
+            range.setStart(doc.getElementsByTagName('i')[0].childNodes[0], 13);
+            range.setEnd(doc.body.childNodes[0], doc.body.childNodes[0].childNodes.length);
+            editor.removeAllFormatting(range);
+            expect(editor, 'to contain HTML', {
+                name: 'div',
+                children: [
+                    { name: 'i' , textContent: 'one two three' },
+                    ' four five'
+                ]});
+        });
+
+        it('removes styles enclosed by the range', function () {
+            var startHTML = '<div>one <i>two three four</i> five</div>';
+            editor.setHTML(startHTML);
+            var range = doc.createRange();
+            range.setStart(doc.body.childNodes[0], 0);
+            range.setEnd(doc.body.childNodes[0], doc.body.childNodes[0].childNodes.length);
+            editor.removeAllFormatting(range);
+            expect(editor, 'to contain HTML', {
+                name: 'div',
+                children: [
+                    'one two three four five'
+                ]});
+        });
+
+        it('removes styles enclosing the range', function () {
+            var startHTML = '<div><i>one two three four five</i></div>';
+            editor.setHTML(startHTML);
+            var range = doc.createRange();
+            range.setStart(doc.getElementsByTagName('i')[0].childNodes[0], 4);
+            range.setEnd(doc.getElementsByTagName('i')[0].childNodes[0], 18);
+            editor.removeAllFormatting(range);
+            expect(editor, 'to contain HTML', {
+                name: 'div',
+                children: [
+                    { name: 'i', textContent: 'one ' },
+                    'two three four',
+                    { name: 'i', textContent: ' five' }
+                ]});
+        });
+
+        it('removes nested styles and closes tags correctly', function () {
+            var startHTML = '<table><tbody><tr><td>one</td></tr><tr><td>two</td><td>three</td></tr><tr><td>four</td><td>five</td></tr></tbody></table>';
+            editor.setHTML(startHTML);
+            var range = doc.createRange();
+            range.setStart(doc.getElementsByTagName('td')[1], 0);
+            range.setEnd(doc.getElementsByTagName('td')[2], doc.getElementsByTagName('td')[2].childNodes.length);
+            editor.removeAllFormatting(range);
+            expect(editor, 'to contain HTML', [
+                    '<table><tbody><tr><td>one</td></tr></tbody></table>',
+                    '<div>two</div>',
+                    '<div>three</div>',
+                    '<table><tbody><tr><td>four</td><td>five</td></tr></tbody></table>'
+                ]);
         });
     });
 
