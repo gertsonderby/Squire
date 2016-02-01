@@ -15,13 +15,13 @@ var expect = unexpected.clone()
             return output.text('Squire RTE: ').code(value.getHTML(), 'html');
         }
     })
-    .addAssertion('DOMElement', 'with br tags stripped', function (expect, subject) {
+    .addAssertion('<DOMElement> with br tags stripped <assertion>', function (expect, subject) {
         Array.prototype.forEach.call(subject.querySelectorAll('br'), function (brElement) {
             brElement.parentNode.removeChild(brElement);
         });
         return expect.shift(subject, 0);
     })
-    .addAssertion('SquireRTE', '[not] to contain HTML [with br tags stripped]', function (expect, editor, expectedValue) {
+    .addAssertion('<SquireRTE> [not] to contain HTML [with br tags stripped] <string|object>', function (expect, editor, expectedValue) {
         if (!Array.isArray(expectedValue)) {
             expectedValue = [expectedValue];
         }
@@ -33,20 +33,19 @@ var expect = unexpected.clone()
                 children: expectedValue
             });
         })
-    .addAssertion('SquireRTE', '[not] to fire', function (expect, editor, event, _, activity) {
+    .addAssertion('<SquireRTE> [not] to fire <string> <function>', function (expect, editor, event, activity) {
         this.errorMode = 'nested';
-        if (typeof _ === 'function') {
-            activity = _;
-        }
         return expect.promise(function (run) {
-            setTimeout(run(function () {
-                var handlerSpy = sinon.spy();
+            var handlerSpy = sinon.spy();
+            var resolution = run(function () {
+                expect(handlerSpy, 'was [not] called');
+            });
+            var setup = function () {
                 editor.addEventListener(event, handlerSpy);
                 activity();
-                setTimeout(run(function () {
-                    expect(handlerSpy, 'was [not] called');
-                }), 2);
-            }, 2));
+                setTimeout(resolution, 2);
+            };
+            setTimeout(setup, 2);
         });
     });
 
@@ -57,9 +56,9 @@ function capitalize(s) {
 }
 
 describe('Squire RTE', function () {
-    var doc, editor;
+    var doc, editor, iframe;
     beforeEach(function (done) {
-        var iframe = document.createElement('iframe');
+        iframe = document.createElement('iframe');
         iframe.id = 'testFrame';
         iframe.style.visibility = 'hidden';
         iframe.addEventListener('load', function () {
@@ -85,16 +84,17 @@ describe('Squire RTE', function () {
         describe('keypress', function () {});
 
         describe('input', function () {
-            it('fires when editor content is changed', function () {
+            it('invokes handler when editor content is changed', function () {
                 var startHTML = '<div>aaa</div>';
                 editor.setHTML(startHTML);
                 expect(editor, 'to contain HTML', startHTML);
-                return expect(editor, 'to fire', 'input', 'when calling', function () {
-                    // doc.body.childNodes.item(0).appendChild( doc.createTextNode('bbb'));
-                    var range = doc.createRange();
-                    range.setStart(doc.body.childNodes.item(0), 0);
-                    range.setEnd(doc.body.childNodes.item(0), doc.body.childNodes.item(0).childNodes.length);
-                    editor.setSelection(range);
+                // doc.body.childNodes.item(0).appendChild( doc.createTextNode('bbb'));
+                var range = doc.createRange();
+                var node = doc.body.childNodes.item(0);
+                range.setStart(node, 0);
+                range.setEnd(node, node.childNodes.length);
+                editor.setSelection(range);
+                return expect(editor, 'to fire', 'input', function () {
                     editor.bold();
                 });
             });
@@ -497,8 +497,8 @@ describe('Squire RTE', function () {
 
     afterEach(function () {
         editor = null;
-        var iframe = document.querySelector('#testFrame');
         document.body.removeChild( iframe );
+        iframe = null;
     });
 });
 
