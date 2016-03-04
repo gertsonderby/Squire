@@ -33,20 +33,29 @@ var expect = unexpected.clone()
                 children: expectedValue
             });
         })
-    .addAssertion('<SquireRTE> [not] to fire <string> <function>', function (expect, editor, event, activity) {
+    .addAssertion('<SquireRTE> [not] to fire <array> <function>', function (expect, editor, events, activity) {
         this.errorMode = 'nested';
         return expect.promise(function (run) {
-            var handlerSpy = sinon.spy();
+            var handlerSpies = events.map(function (event) {
+                return sinon.spy().named(event);
+            });
             var resolution = run(function () {
-                expect(handlerSpy, 'was [not] called');
+                handlerSpies.forEach(function (spy) {
+                    expect(spy, 'was [not] called');
+                });
             });
             var setup = function () {
-                editor.addEventListener(event, handlerSpy);
+                events.forEach(function (event, index) {
+                    editor.addEventListener(event, handlerSpies[index]);
+                });
                 activity();
                 setTimeout(resolution, 2);
             };
             setTimeout(setup, 2);
         });
+    })
+    .addAssertion('<SquireRTE> [not] to fire <string> <function>', function (expect, editor, event, activity) {
+        return expect(editor, '[not] to fire', [event], activity);
     });
 
 window.expect = expect;
@@ -77,7 +86,18 @@ describe('Squire RTE', function () {
     }
 
     describe('addEventListener', function () {
-        describe('focus', function () {});
+        describe('focus', function () {
+            it('fires when setting selection', function () {
+                editor.setHTML('<div>aaa</div>');
+                var range = doc.createRange();
+                var node = doc.body.childNodes.item(0);
+                range.setStart(node, 0);
+                range.setEnd(node, node.childNodes.length);
+                expect(editor, 'to fire', 'focus', function () {
+                    editor.setSelection(range);
+                });
+            });
+        });
         describe('blur', function () {});
         describe('keydown', function () {});
         describe('keyup', function () {});

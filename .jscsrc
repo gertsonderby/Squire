@@ -1,6 +1,3 @@
 {
-    "disallowSpacesInsideParentheses": false,
-    "disallowSpacesInFunctionDeclaration": {
-        "beforeOpeningRoundBrace": false
-    }
+    "disallowSpacesInsideParentheses": false
 }
