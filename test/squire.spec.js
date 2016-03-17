@@ -33,16 +33,14 @@ var expect = unexpected.clone()
                 children: expectedValue
             });
         })
-    .addAssertion('<SquireRTE> [not] to fire <array> <function>', function (expect, editor, events, activity) {
-        this.errorMode = 'nested';
+    .addAssertion('<SquireRTE> to fire <array> <function>', function (expect, editor, events, activity) {
+        this.errorMode = 'defaultOrNested';
         return expect.promise(function (run) {
             var handlerSpies = events.map(function (event) {
                 return sinon.spy().named(event);
             });
             var resolution = run(function () {
-                handlerSpies.forEach(function (spy) {
-                    expect(spy, 'was [not] called');
-                });
+                expect(handlerSpies, 'given call order');
             });
             var setup = function () {
                 events.forEach(function (event, index) {
@@ -54,8 +52,9 @@ var expect = unexpected.clone()
             setTimeout(setup, 2);
         });
     })
-    .addAssertion('<SquireRTE> [not] to fire <string> <function>', function (expect, editor, event, activity) {
-        return expect(editor, '[not] to fire', [event], activity);
+    .addAssertion('<SquireRTE> to fire <string> <function>', function (expect, editor, event, activity) {
+        this.errorMode = 'bubble';
+        return expect(editor, 'to fire', [event], activity);
     });
 
 window.expect = expect;
@@ -85,20 +84,54 @@ describe('Squire RTE', function () {
         editor.setSelection(range);
     }
 
+    function simulateClick(element) {
+      var event = new MouseEvent('click', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+      });
+      element.dispatchEvent(event);
+    }
+
     describe('addEventListener', function () {
         describe('focus', function () {
-            it('fires when setting selection', function () {
-                editor.setHTML('<div>aaa</div>');
-                var range = doc.createRange();
-                var node = doc.body.childNodes.item(0);
-                range.setStart(node, 0);
-                range.setEnd(node, node.childNodes.length);
-                expect(editor, 'to fire', 'focus', function () {
-                    editor.setSelection(range);
+            beforeEach(function () {
+                document.body.focus();
+            });
+
+            it('fires when focusing programmatically via DOM', function () {
+                return expect(editor, 'to fire', 'focus', function () {
+                    doc.body.focus();
+                });
+            });
+
+            it('fires when focusing programmatically via Squire function', function () {
+                return expect(editor, 'to fire', 'focus', function () {
+                    editor.focus();
+                });
+            });
+
+            it.skip('fires when focusing via click', function () {
+                return expect(editor, 'to fire', 'focus', function () {
+                    simulateClick(doc.body);
                 });
             });
         });
-        describe('blur', function () {});
+
+        describe('blur', function () {
+            var focusable;
+            beforeEach(function () {
+                focusable = document.createElement('input');
+                document.body.appendChild(focusable);
+                editor.focus();
+            });
+
+            it('fires when selecting outside editor', function () {
+                return expect(editor, 'to fire', 'blur', function () {
+                    focusable.focus();
+                });
+            });
+        });
         describe('keydown', function () {});
         describe('keyup', function () {});
         describe('keypress', function () {});
