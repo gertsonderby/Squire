@@ -59,6 +59,83 @@ var expect = unexpected.clone()
 
 window.expect = expect;
 
+var eventMatchers = {
+    'HTMLEvents': /^(?:load|unload|abort|error|select|change|submit|reset|focus|blur|resize|scroll)$/,
+    'MouseEvents': /^(?:click|dblclick|mouse(?:down|up|over|move|out))$/
+};
+var defaultOptions = {
+    pointerX: 0,
+    pointerY: 0,
+    button: 0,
+    ctrlKey: false,
+    altKey: false,
+    shiftKey: false,
+    metaKey: false,
+    bubbles: true,
+    cancelable: true
+};
+
+function extend(destination, source) {
+    for (var property in source) {
+        destination[property] = source[property];
+    }
+    return destination;
+}
+
+function simulate(element, eventName) {
+    var options = extend(defaultOptions, arguments[2] || {});
+    var oEvent, eventType = null;
+
+    for (var name in eventMatchers)
+    {
+        if (eventMatchers[name].test(eventName)) { eventType = name; break; }
+    }
+
+    if (!eventType) {
+        throw new SyntaxError('Only HTMLEvents and MouseEvents interfaces are supported');
+    }
+
+    if (document.createEvent) {
+        oEvent = document.createEvent(eventType);
+        if (eventType === 'HTMLEvents') {
+            oEvent.initEvent(eventName, options.bubbles, options.cancelable);
+        } else {
+            oEvent.initMouseEvent(eventName, options.bubbles, options.cancelable, document.defaultView,
+            options.button, options.pointerX, options.pointerY, options.pointerX, options.pointerY,
+            options.ctrlKey, options.altKey, options.shiftKey, options.metaKey, options.button, element);
+        }
+        element.dispatchEvent(oEvent);
+    } else {
+        options.clientX = options.pointerX;
+        options.clientY = options.pointerY;
+        var evt = document.createEventObject();
+        oEvent = extend(evt, options);
+        element.fireEvent('on' + eventName, oEvent);
+    }
+    return element;
+}
+
+function clickNode(editor, node) {
+    if (editor) {
+        var range = editor.getDocument().createRange();
+        range.setStart(node, 0);
+        range.setEnd(node, 0);
+        editor.setSelection(range);
+    }
+    simulate(node, 'mousedown');
+    simulate(node, 'mouseup');
+    simulate(node, 'click');
+    simulate(node, 'focus');
+}
+
+function selectAll(editor) {
+    var doc = editor.getDocument();
+    var range = doc.createRange();
+    range.setStart(doc.body.childNodes[0], 0);
+    range.setEnd(doc.body.childNodes[doc.body.childNodes.length - 1], doc.body.childNodes[doc.body.childNodes.length - 1].childNodes.length);
+    editor.setSelection(range);
+}
+
 function capitalize(s) {
     return s && s[0].toUpperCase() + s.slice(1);
 }
@@ -77,43 +154,27 @@ describe('Squire RTE', function () {
         document.body.appendChild(iframe);
     });
 
-    function selectAll(editor) {
-        var range = doc.createRange();
-        range.setStart(doc.body.childNodes[0], 0);
-        range.setEnd(doc.body.childNodes[doc.body.childNodes.length - 1], doc.body.childNodes[doc.body.childNodes.length - 1].childNodes.length);
-        editor.setSelection(range);
-    }
-
-    function simulateClick(element) {
-      var event = new MouseEvent('click', {
-        'view': window,
-        'bubbles': true,
-        'cancelable': true
-      });
-      element.dispatchEvent(event);
-    }
-
     describe('addEventListener', function () {
         describe('focus', function () {
             beforeEach(function () {
                 document.body.focus();
             });
 
-            it('fires when focusing programmatically via DOM', function () {
+            it('fires when calling HTMLElement#focus() inside editor', function () {
                 return expect(editor, 'to fire', 'focus', function () {
                     doc.body.focus();
                 });
             });
 
-            it('fires when focusing programmatically via Squire function', function () {
+            it('fires when calling Squire#focus()', function () {
                 return expect(editor, 'to fire', 'focus', function () {
                     editor.focus();
                 });
             });
 
-            it.skip('fires when focusing via click', function () {
+            it('fires when focusing via click', function () {
                 return expect(editor, 'to fire', 'focus', function () {
-                    simulateClick(doc.body);
+                    clickNode(editor, doc.body);
                 });
             });
         });
@@ -126,12 +187,26 @@ describe('Squire RTE', function () {
                 editor.focus();
             });
 
-            it('fires when selecting outside editor', function () {
+            it('fires when calling Squire#blur()', function () {
+                return expect(editor, 'to fire', 'blur', function () {
+                    editor.blur();
+                });
+            });
+
+            it('fires when calling HTMLElement#focus() outside editor', function () {
                 return expect(editor, 'to fire', 'blur', function () {
                     focusable.focus();
                 });
             });
+
+            it.skip('fires when focusing via click', function () {
+                return expect(editor, 'to fire', 'focus', function () {
+                    clickNode(null, focusable);
+                });
+            });
         });
+
+        // Potentially tricky, need to simulate keystrokes to test these.
         describe('keydown', function () {});
         describe('keyup', function () {});
         describe('keypress', function () {});
@@ -153,10 +228,56 @@ describe('Squire RTE', function () {
             });
         });
 
-        describe('pathChange', function () {});
-        describe('select', function () {});
-        describe('undoStateChange', function () {});
-        describe('willPaste', function () {});
+        describe('pathChange', function () {
+            var range;
+            beforeEach(function () {
+                range = doc.createRange();
+                editor.setHTML('<div><b>first</b> second <i>third</i></div>');
+                // Cursor is at start, inside B tag
+            });
+
+            it.skip('fires when the cursor is moved with Squire#setSelection()', function () {
+                // Fails w. code as written. Shouldn't this work?
+                var node = doc.body.childNodes.item(0).childNodes.item(2); // I tag
+                range.setStart(node, 0);
+                range.setEnd(node, 0);
+                return expect(editor, 'to fire', 'pathChange', function () {
+                    editor.setSelection(range);
+                });
+            });
+
+            it('fires when the cursor is moved by click', function () { // Shouldn't this be the case?
+                var node = doc.body.childNodes.item(0).childNodes.item(2); // I tag
+                return expect(editor, 'to fire', 'pathChange', function () {
+                    clickNode(editor, node);
+                });
+            });
+
+            it('fires when the style is changed', function () {
+                var node = doc.body.childNodes.item(0).childNodes.item(0); // B tag
+                range.setStart(node, 0);
+                range.setEnd(node, node.childNodes.length);
+                editor.setSelection(range);
+                return expect(editor, 'to fire', 'pathChange', function () {
+                    editor.removeBold();
+                });
+            });
+        });
+
+        describe('select', function () {
+            it('fires when a selection is made'); // Need to be able to simulate user selecting via mouse or keys
+        });
+
+        describe('undoStateChange', function () {
+            it('fires when an action is undone', function () {});
+
+            it('fires when an action is redone', function () {});
+        });
+
+        // Will need work to simulate...
+        describe('willPaste', function () {
+            it('fires when pasting content', function () {});
+        });
     });
 
     describe('removeEventListener', function () {});
